@@ -5,13 +5,13 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/github"
 	"github.com/mozamimy/lambda-github-issue-opener/parameter"
-	"github.com/mozamimy/lambda-github-issue-opener/snsevent"
 )
 
-func HandleRequest(snsEvent snsevent.SNSEvent) {
+func HandleRequest(snsEvent events.SNSEvent) {
 	parameter, err := parameter.New(snsEvent)
 	if err != nil {
 		log.Fatal(err)
@@ -25,16 +25,17 @@ func HandleRequest(snsEvent snsevent.SNSEvent) {
 
 	client, _ := github.NewEnterpriseClient(parameter.GitHubAPIBaseURL, parameter.GitHubAPIUploadsBaseURL, &http.Client{Transport: itr})
 
-	req := &github.IssueRequest{
-		Title: github.String(parameter.IssueSubject),
-		Body:  github.String(parameter.IssueBody),
-	}
-
 	ctx := context.Background()
 	owner := parameter.RepositoryOwner
 	repo := parameter.Repository
-	_, _, err = client.Issues.Create(ctx, owner, repo, req)
-	if err != nil {
-		log.Fatal(err)
+	for _, issue := range parameter.Issues {
+		req := &github.IssueRequest{
+			Title: github.String(issue.Subject),
+			Body:  github.String(issue.Body),
+		}
+		_, _, err = client.Issues.Create(ctx, owner, repo, req)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }

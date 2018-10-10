@@ -28,6 +28,8 @@ go get github.com/bradleyfalzon/ghinstallation
 go get github.com/google/go-github/v18/github
 go get github.com/aws/aws-sdk-go/service/secretsmanager
 go get github.com/aws/aws-sdk-go/aws/session
+go get github.com/aws/aws-lambda-go/lambda
+go get github.com/aws/aws-lambda-go/events
 GOOS=linux make main.zip
 ```
 

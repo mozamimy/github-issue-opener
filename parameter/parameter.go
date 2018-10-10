@@ -7,9 +7,14 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/mozamimy/lambda-github-issue-opener/secret"
-	"github.com/mozamimy/lambda-github-issue-opener/snsevent"
 )
+
+type Issue struct {
+	Subject string
+	Body    string
+}
 
 type Parameter struct {
 	GitHubAppKey            string
@@ -21,8 +26,7 @@ type Parameter struct {
 	GitHubAPIUploadsBaseURL string
 	RepositoryOwner         string
 	Repository              string
-	IssueSubject            string
-	IssueBody               string
+	Issues                  []Issue
 }
 
 func fetchEnvVarAsInt(key string) (int, error) {
@@ -39,17 +43,17 @@ func fetchEnvVarAsInt(key string) (int, error) {
 	return retVar, nil
 }
 
-func renderTemplate(templateStr string, snsEvent snsevent.SNSEvent) (string, error) {
+func renderTemplate(templateStr string, snsEntity events.SNSEntity) (string, error) {
 	template := template.Must(template.New("template").Parse(templateStr))
 	var templateBuffer bytes.Buffer
-	err := template.Execute(&templateBuffer, snsEvent)
+	err := template.Execute(&templateBuffer, snsEntity)
 	if err != nil {
 		return "", err
 	}
 	return templateBuffer.String(), nil
 }
 
-func New(snsEvent snsevent.SNSEvent) (Parameter, error) {
+func New(snsEvent events.SNSEvent) (Parameter, error) {
 	parameter := Parameter{}
 
 	parameter.GitHubAppKey = os.Getenv("GITHUB_APP_KEY")
@@ -97,7 +101,6 @@ func New(snsEvent snsevent.SNSEvent) (Parameter, error) {
 	if parameter.RepositoryOwner == "" {
 		return Parameter{}, fmt.Errorf("REPOSITORY_OWNER variable is required")
 	}
-
 	parameter.Repository = os.Getenv("REPOSITORY")
 	if parameter.Repository == "" {
 		return Parameter{}, fmt.Errorf("REPOSITORY variable is required")
@@ -107,19 +110,22 @@ func New(snsEvent snsevent.SNSEvent) (Parameter, error) {
 	if issueSubjectTemplateStr == "" {
 		return Parameter{}, fmt.Errorf("ISSUE_SUBJECT_TEMPLATE variable is required")
 	}
-	parameter.IssueSubject, err = renderTemplate(issueSubjectTemplateStr, snsEvent)
-	if err != nil {
-		return Parameter{}, err
-	}
-
 	issueBodyTemplateStr := os.Getenv("ISSUE_BODY_TEMPLATE")
 	if issueBodyTemplateStr == "" {
 		return Parameter{}, fmt.Errorf("ISSUE_BODY_TEMPLATE variable is required")
 	}
-	parameter.IssueBody, err = renderTemplate(issueBodyTemplateStr, snsEvent)
-	if err != nil {
-		return Parameter{}, err
-	}
 
+	for _, record := range snsEvent.Records {
+		snsEntity := record.SNS
+		issueSubject, err := renderTemplate(issueSubjectTemplateStr, snsEntity)
+		if err != nil {
+			return Parameter{}, err
+		}
+		issueBody, err := renderTemplate(issueBodyTemplateStr, snsEntity)
+		if err != nil {
+			return Parameter{}, err
+		}
+		parameter.Issues = append(parameter.Issues, Issue{Subject: issueSubject, Body: issueBody})
+	}
 	return parameter, nil
 }
