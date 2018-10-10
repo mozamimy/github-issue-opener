@@ -1,0 +1,34 @@
+{
+   "AWSTemplateFormatVersion": "2010-09-09",
+   "Description": "A serverless application to open a GitHub issue by SNS notification.",
+   "Resources": {
+      "GitHubIssueOpener": {
+         "Properties": {
+            "CodeUri": "main.zip",
+            "Environment": {
+               "Variables": {
+                  "GITHUB_API_BASE_URL": "https://api.github.com",
+                  "GITHUB_API_UPLOADS_BASE_URL": "https://uploads.github.com",
+                  "GITHUB_APP_KEY": "WRITE YOUR APP KEY HERE",
+                  "GITHUB_APP_PRIVATE_KEY_SECRET_NAME": "lambda/lambda-github-issue-opener",
+                  "GITHUB_BASE_URL": "https://github.com",
+                  "GITHUB_INSTALLATION_ID": "WRITE YOUR INSTALLATION ID",
+                  "GITHUB_INTEGRATION_ID": "WRITE YOUR INTEGRATION ID",
+                  "ISSUE_BODY_TEMPLATE": "{{.Message}}",
+                  "ISSUE_SUBJECT_TEMPLATE": "{{.Subject}}",
+                  "REPOSITORY": "WRITE YOUR REPOSITORY",
+                  "REPOSITORY_OWNER": "WRITE YOUR USER NAME OR ORGANIZATION"
+               }
+            },
+            "FunctionName": "github-issue-opener",
+            "Handler": "main",
+            "MemorySize": 128,
+            "Role": "WRITE YOUR LAMBDA EXECUTION ROLE",
+            "Runtime": "go1.x",
+            "Timeout": 7
+         },
+         "Type": "AWS::Serverless::Function"
+      }
+   },
+   "Transform": "AWS::Serverless-2016-10-31"
+}
