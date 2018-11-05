@@ -26,6 +26,7 @@ type Parameter struct {
 	GitHubAPIUploadsBaseURL string
 	RepositoryOwner         string
 	Repository              string
+	IssueLabel              string
 	Issues                  []Issue
 }
 
@@ -105,6 +106,8 @@ func New(snsEvent events.SNSEvent) (Parameter, error) {
 	if parameter.Repository == "" {
 		return Parameter{}, fmt.Errorf("REPOSITORY variable is required")
 	}
+
+	parameter.IssueLabel = os.Getenv("ISSUE_LABEL")
 
 	issueSubjectTemplateStr := os.Getenv("ISSUE_SUBJECT_TEMPLATE")
 	if issueSubjectTemplateStr == "" {
