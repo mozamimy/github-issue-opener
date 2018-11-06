@@ -28,15 +28,11 @@ func HandleRequest(snsEvent events.SNSEvent) {
 	ctx := context.Background()
 	owner := parameter.RepositoryOwner
 	repo := parameter.Repository
-	labels := []string{}
-	if parameter.IssueLabel != "" {
-		labels = append(labels, parameter.IssueLabel)
-	}
 	for _, issue := range parameter.Issues {
 		req := &github.IssueRequest{
 			Title:  github.String(issue.Subject),
 			Body:   github.String(issue.Body),
-			Labels: &labels,
+			Labels: &parameter.IssueLabels,
 		}
 		_, _, err = client.Issues.Create(ctx, owner, repo, req)
 		if err != nil {
