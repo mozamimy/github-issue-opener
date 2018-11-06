@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/mozamimy/lambda-github-issue-opener/secret"
@@ -26,7 +27,7 @@ type Parameter struct {
 	GitHubAPIUploadsBaseURL string
 	RepositoryOwner         string
 	Repository              string
-	IssueLabel              string
+	IssueLabels             []string
 	Issues                  []Issue
 }
 
@@ -52,6 +53,17 @@ func renderTemplate(templateStr string, snsEntity events.SNSEntity) (string, err
 		return "", err
 	}
 	return templateBuffer.String(), nil
+}
+
+func splitAndTrim(str string, sep string) []string {
+	var ret []string
+	for _, splitStr := range strings.Split(str, sep) {
+		trimmedStr := strings.TrimSpace(splitStr)
+		if trimmedStr != "" {
+			ret = append(ret, trimmedStr)
+		}
+	}
+	return ret
 }
 
 func New(snsEvent events.SNSEvent) (Parameter, error) {
@@ -107,7 +119,7 @@ func New(snsEvent events.SNSEvent) (Parameter, error) {
 		return Parameter{}, fmt.Errorf("REPOSITORY variable is required")
 	}
 
-	parameter.IssueLabel = os.Getenv("ISSUE_LABEL")
+	parameter.IssueLabels = splitAndTrim(os.Getenv("ISSUE_LABELS"), ",")
 
 	issueSubjectTemplateStr := os.Getenv("ISSUE_SUBJECT_TEMPLATE")
 	if issueSubjectTemplateStr == "" {
