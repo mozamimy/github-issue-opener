@@ -2,9 +2,11 @@ package parameter
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -132,6 +134,51 @@ func New(snsEvent events.SNSEvent) (Parameter, error) {
 
 	for _, record := range snsEvent.Records {
 		snsEntity := record.SNS
+
+		for key, attr := range snsEntity.MessageAttributes {
+			switch attrMap := attr.(type) {
+			case map[string]interface{}:
+				switch attrValue := attrMap["Value"].(type) {
+				case string:
+					switch attrMap["Type"] {
+					case "String.Array":
+						if key == "Labels" {
+							var labels []string
+							err := json.Unmarshal([]byte(attrValue), &labels)
+							if err != nil {
+								return Parameter{}, fmt.Errorf("failed to unmarshal message attribute value: %v", attrValue)
+							}
+							parameter.IssueLabels = labels
+						} else {
+							return Parameter{}, fmt.Errorf("unknown message attribute key: %v", key)
+						}
+					case "String":
+						switch key {
+						case "IssueSubjectTemplate":
+							issueSubjectTemplateStr = attrValue
+						case "IssueBodyTemplate":
+							issueBodyTemplateStr = attrValue
+						case "RepositoryOwner":
+							parameter.RepositoryOwner = attrValue
+						case "Repository":
+							parameter.Repository = attrValue
+						default:
+							return Parameter{}, fmt.Errorf("unknown message attribute key: %v", key)
+						}
+					case "Number":
+						parameter.GitHubInstallationID, err = strconv.Atoi(attrValue)
+						if err != nil {
+							return Parameter{}, fmt.Errorf("failed to convert from string to integer (key: %v, value: %v)", key, attrValue)
+						}
+					}
+				default:
+					return Parameter{}, fmt.Errorf("unknown type is found in message attribute [%v]: %v", reflect.TypeOf(attrValue), attrValue)
+				}
+			default:
+				return Parameter{}, fmt.Errorf("unknown type is found in message attribute [%v]: %v", reflect.TypeOf(attrMap), attrMap)
+			}
+		}
+
 		issueSubject, err := renderTemplate(issueSubjectTemplateStr, snsEntity)
 		if err != nil {
 			return Parameter{}, err
