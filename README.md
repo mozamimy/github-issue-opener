@@ -32,7 +32,7 @@ GOOS=linux make main.zip
 You should install [aws-sam-cli](https://github.com/awslabs/aws-sam-cli) before follow the instructions.
 
 ```sh
-cp template.json.example template.json
+cp template.example.json template.json
 # And edit the template.json according to your environment
 sam local invoke "GitHubIssueOpener" -t template.json
 ```
