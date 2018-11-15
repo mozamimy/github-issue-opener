@@ -68,126 +68,143 @@ func splitAndTrim(str string, sep string) []string {
 	return ret
 }
 
-func New(snsEvent events.SNSEvent) (Parameter, error) {
-	parameter := Parameter{}
+func handleEnvVars(parameter *Parameter) (string, string, error) {
+	var err error
 
 	parameter.GitHubAppKey = os.Getenv("GITHUB_APP_KEY")
 	if parameter.GitHubAppKey == "" {
-		return Parameter{}, fmt.Errorf("GITHUB_APP_KEY variable is required")
+		return "", "", fmt.Errorf("GITHUB_APP_KEY variable is required")
 	}
 
 	parameter.GitHubBaseURL = os.Getenv("GITHUB_BASE_URL")
 	if parameter.GitHubBaseURL == "" {
-		return Parameter{}, fmt.Errorf("GITHUB_BASE_URL variable is required")
+		return "", "", fmt.Errorf("GITHUB_BASE_URL variable is required")
 	}
 
-	var err error
 	parameter.GitHubIntegrationID, err = fetchEnvVarAsInt("GITHUB_INTEGRATION_ID")
 	if err != nil {
-		return Parameter{}, err
+		return "", "", err
 	}
 
 	parameter.GitHubInstallationID, err = fetchEnvVarAsInt("GITHUB_INSTALLATION_ID")
 	if err != nil {
-		return Parameter{}, err
+		return "", "", err
 	}
 
 	gitHubAppPrivateKeySecretName := os.Getenv("GITHUB_APP_PRIVATE_KEY_SECRET_NAME")
 	if gitHubAppPrivateKeySecretName == "" {
-		return Parameter{}, fmt.Errorf("GITHUB_APP_PRIVATE_KEY_SECRET_NAME variable is required")
+		return "", "", fmt.Errorf("GITHUB_APP_PRIVATE_KEY_SECRET_NAME variable is required")
 	}
 	secrets, err := secret.FetchSecret(gitHubAppPrivateKeySecretName)
 	if err != nil {
-		return Parameter{}, err
+		return "", "", err
 	}
 	parameter.GitHubAppPrivateKey = secrets.GitHubAppPrivateKey
 
 	parameter.GitHubAPIBaseURL = os.Getenv("GITHUB_API_BASE_URL")
 	if parameter.GitHubAPIBaseURL == "" {
-		return Parameter{}, fmt.Errorf("GITHUB_API_BASE_URL variable is required")
+		return "", "", fmt.Errorf("GITHUB_API_BASE_URL variable is required")
 	}
 
 	parameter.GitHubAPIUploadsBaseURL = os.Getenv("GITHUB_API_UPLOADS_BASE_URL")
 	if parameter.GitHubAPIUploadsBaseURL == "" {
-		return Parameter{}, fmt.Errorf("GITHUB_API_UPLOADS_BASE_URL variable is required")
+		return "", "", fmt.Errorf("GITHUB_API_UPLOADS_BASE_URL variable is required")
 	}
 
 	parameter.RepositoryOwner = os.Getenv("REPOSITORY_OWNER")
 	if parameter.RepositoryOwner == "" {
-		return Parameter{}, fmt.Errorf("REPOSITORY_OWNER variable is required")
+		return "", "", fmt.Errorf("REPOSITORY_OWNER variable is required")
 	}
 	parameter.Repository = os.Getenv("REPOSITORY")
 	if parameter.Repository == "" {
-		return Parameter{}, fmt.Errorf("REPOSITORY variable is required")
+		return "", "", fmt.Errorf("REPOSITORY variable is required")
 	}
 
 	parameter.IssueLabels = splitAndTrim(os.Getenv("ISSUE_LABELS"), ",")
 
 	issueSubjectTemplateStr := os.Getenv("ISSUE_SUBJECT_TEMPLATE")
 	if issueSubjectTemplateStr == "" {
-		return Parameter{}, fmt.Errorf("ISSUE_SUBJECT_TEMPLATE variable is required")
+		return "", "", fmt.Errorf("ISSUE_SUBJECT_TEMPLATE variable is required")
 	}
 	issueBodyTemplateStr := os.Getenv("ISSUE_BODY_TEMPLATE")
 	if issueBodyTemplateStr == "" {
-		return Parameter{}, fmt.Errorf("ISSUE_BODY_TEMPLATE variable is required")
+		return "", "", fmt.Errorf("ISSUE_BODY_TEMPLATE variable is required")
+	}
+
+	return issueSubjectTemplateStr, issueBodyTemplateStr, nil
+}
+
+func handleMessageAttributes(snsEntity *events.SNSEntity, issueSubjectTemplateStr *string, issueBodyTemplateStr *string, parameter *Parameter) error {
+	var err error
+	for key, attr := range snsEntity.MessageAttributes {
+		switch attrMap := attr.(type) {
+		case map[string]interface{}:
+			switch attrValue := attrMap["Value"].(type) {
+			case string:
+				switch attrMap["Type"] {
+				case "String.Array":
+					if key == "Labels" {
+						var labels []string
+						err := json.Unmarshal([]byte(attrValue), &labels)
+						if err != nil {
+							return fmt.Errorf("failed to unmarshal message attribute value: %v", attrValue)
+						}
+						parameter.IssueLabels = labels
+					} else {
+						return fmt.Errorf("unknown message attribute key: %v", key)
+					}
+				case "String":
+					switch key {
+					case "IssueSubjectTemplate":
+						issueSubjectTemplateStr = &attrValue
+					case "IssueBodyTemplate":
+						issueBodyTemplateStr = &attrValue
+					case "RepositoryOwner":
+						parameter.RepositoryOwner = attrValue
+					case "Repository":
+						parameter.Repository = attrValue
+					default:
+						return fmt.Errorf("unknown message attribute key: %v", key)
+					}
+				case "Number":
+					parameter.GitHubInstallationID, err = strconv.Atoi(attrValue)
+					if err != nil {
+						return fmt.Errorf("failed to convert from string to integer (key: %v, value: %v)", key, attrValue)
+					}
+				}
+			default:
+				return fmt.Errorf("unknown type is found in message attribute [%v]: %v", reflect.TypeOf(attrValue), attrValue)
+			}
+		default:
+			return fmt.Errorf("unknown type is found in message attribute [%v]: %v", reflect.TypeOf(attrMap), attrMap)
+		}
+	}
+
+	issueSubject, err := renderTemplate(*issueSubjectTemplateStr, *snsEntity)
+	if err != nil {
+		return err
+	}
+	issueBody, err := renderTemplate(*issueBodyTemplateStr, *snsEntity)
+	if err != nil {
+		return err
+	}
+	parameter.Issues = append(parameter.Issues, Issue{Subject: issueSubject, Body: issueBody})
+	return nil
+}
+
+func New(snsEvent events.SNSEvent) (Parameter, error) {
+	parameter := Parameter{}
+	issueSubjectTemplateStr, issueBodyTemplateStr, err := handleEnvVars(&parameter)
+	if err != nil {
+		return Parameter{}, err
 	}
 
 	for _, record := range snsEvent.Records {
 		snsEntity := record.SNS
-
-		for key, attr := range snsEntity.MessageAttributes {
-			switch attrMap := attr.(type) {
-			case map[string]interface{}:
-				switch attrValue := attrMap["Value"].(type) {
-				case string:
-					switch attrMap["Type"] {
-					case "String.Array":
-						if key == "Labels" {
-							var labels []string
-							err := json.Unmarshal([]byte(attrValue), &labels)
-							if err != nil {
-								return Parameter{}, fmt.Errorf("failed to unmarshal message attribute value: %v", attrValue)
-							}
-							parameter.IssueLabels = labels
-						} else {
-							return Parameter{}, fmt.Errorf("unknown message attribute key: %v", key)
-						}
-					case "String":
-						switch key {
-						case "IssueSubjectTemplate":
-							issueSubjectTemplateStr = attrValue
-						case "IssueBodyTemplate":
-							issueBodyTemplateStr = attrValue
-						case "RepositoryOwner":
-							parameter.RepositoryOwner = attrValue
-						case "Repository":
-							parameter.Repository = attrValue
-						default:
-							return Parameter{}, fmt.Errorf("unknown message attribute key: %v", key)
-						}
-					case "Number":
-						parameter.GitHubInstallationID, err = strconv.Atoi(attrValue)
-						if err != nil {
-							return Parameter{}, fmt.Errorf("failed to convert from string to integer (key: %v, value: %v)", key, attrValue)
-						}
-					}
-				default:
-					return Parameter{}, fmt.Errorf("unknown type is found in message attribute [%v]: %v", reflect.TypeOf(attrValue), attrValue)
-				}
-			default:
-				return Parameter{}, fmt.Errorf("unknown type is found in message attribute [%v]: %v", reflect.TypeOf(attrMap), attrMap)
-			}
-		}
-
-		issueSubject, err := renderTemplate(issueSubjectTemplateStr, snsEntity)
+		err = handleMessageAttributes(&snsEntity, &issueSubjectTemplateStr, &issueBodyTemplateStr, &parameter)
 		if err != nil {
 			return Parameter{}, err
 		}
-		issueBody, err := renderTemplate(issueBodyTemplateStr, snsEntity)
-		if err != nil {
-			return Parameter{}, err
-		}
-		parameter.Issues = append(parameter.Issues, Issue{Subject: issueSubject, Body: issueBody})
 	}
 	return parameter, nil
 }
