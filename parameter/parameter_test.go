@@ -107,4 +107,32 @@ func TestNew(t *testing.T) {
 	} else {
 		t.Fatalf("Do not same values, expect: %+v, got: %+v", expect, result)
 	}
+
+	// Test a case which has no ISSUE_LABALS environment variable
+	os.Setenv("ISSUE_LABELS", "")
+
+	result, err = New(snsEvent2)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	// TODO: We should mock API call for AWS Secret Manager and replace with dummy secret key name
+	result.GitHubAppPrivateKey = "dummy"
+	expect = Parameter{
+		GitHubAppKey:            "dummy",
+		GitHubBaseURL:           "https://example.com",
+		GitHubIntegrationID:     2,
+		GitHubInstallationID:    1,
+		GitHubAppPrivateKey:     "dummy",
+		GitHubAPIBaseURL:        "https://api.example.com",
+		GitHubAPIUploadsBaseURL: "https://uploads.example.com",
+		RepositoryOwner:         "rabbit",
+		Repository:              "syndrome",
+		IssueLabels:             []string{},
+		Issues:                  issues,
+	}
+	if reflect.DeepEqual(result, expect) {
+		// ok
+	} else {
+		t.Fatalf("Do not same values, expect: %+v, got: %+v", expect, result)
+	}
 }
