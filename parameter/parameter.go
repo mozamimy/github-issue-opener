@@ -58,7 +58,7 @@ func renderTemplate(templateStr string, snsEntity events.SNSEntity) (string, err
 }
 
 func splitAndTrim(str string, sep string) []string {
-	var ret []string
+	ret := []string{}
 	for _, splitStr := range strings.Split(str, sep) {
 		trimmedStr := strings.TrimSpace(splitStr)
 		if trimmedStr != "" {
