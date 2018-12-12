@@ -1,4 +1,4 @@
-# lambda-github-issue-opener
+# github-issue-opener
 
 A serverless application to open a GitHub issue by SNS notification.
 
@@ -43,7 +43,7 @@ sam local invoke "GitHubIssueOpener" -t template.json
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/mozamimy/lambda-github-issue-opener.
+Bug reports and pull requests are welcome on GitHub at https://github.com/mozamimy/github-issue-opener.
 
 ## License
 

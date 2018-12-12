@@ -25,7 +25,7 @@ func TestNew(t *testing.T) {
 	os.Setenv("GITHUB_API_UPLOADS_BASE_URL", "https://uploads.example.com")
 	os.Setenv("GITHUB_APP_KEY", "dummy")
 	// TODO: We should mock API call for AWS Secret Manager and replace with dummy secret key name
-	os.Setenv("GITHUB_APP_PRIVATE_KEY_SECRET_NAME", "lambda/lambda-github-issue-opener")
+	os.Setenv("GITHUB_APP_PRIVATE_KEY_SECRET_NAME", "lambda/github-issue-opener")
 	os.Setenv("GITHUB_BASE_URL", "https://example.com")
 	os.Setenv("GITHUB_INSTALLATION_ID", "1")
 	os.Setenv("GITHUB_INTEGRATION_ID", "2")

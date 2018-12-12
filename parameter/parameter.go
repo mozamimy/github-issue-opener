@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/mozamimy/lambda-github-issue-opener/secret"
+	"github.com/mozamimy/github-issue-opener/secret"
 )
 
 type Issue struct {

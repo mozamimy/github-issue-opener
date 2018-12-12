@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/mozamimy/lambda-github-issue-opener/handler"
+	"github.com/mozamimy/github-issue-opener/handler"
 )
 
 func main() {
