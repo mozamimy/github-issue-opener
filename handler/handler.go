@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/bradleyfalzon/ghinstallation"
 	"github.com/google/go-github/github"
-	"github.com/mozamimy/lambda-github-issue-opener/parameter"
+	"github.com/mozamimy/github-issue-opener/parameter"
 )
 
 func HandleRequest(snsEvent events.SNSEvent) {

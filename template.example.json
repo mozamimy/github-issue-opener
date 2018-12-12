@@ -10,7 +10,7 @@
                   "GITHUB_API_BASE_URL": "https://api.github.com",
                   "GITHUB_API_UPLOADS_BASE_URL": "https://uploads.github.com",
                   "GITHUB_APP_KEY": "WRITE YOUR APP KEY HERE",
-                  "GITHUB_APP_PRIVATE_KEY_SECRET_NAME": "lambda/lambda-github-issue-opener",
+                  "GITHUB_APP_PRIVATE_KEY_SECRET_NAME": "lambda/github-issue-opener",
                   "GITHUB_BASE_URL": "https://github.com",
                   "GITHUB_INSTALLATION_ID": "WRITE YOUR INSTALLATION ID",
                   "GITHUB_INTEGRATION_ID": "WRITE YOUR INTEGRATION ID",
