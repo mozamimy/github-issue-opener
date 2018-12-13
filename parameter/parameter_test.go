@@ -135,4 +135,50 @@ func TestNew(t *testing.T) {
 	} else {
 		t.Fatalf("Do not same values, expect: %+v, got: %+v", expect, result)
 	}
+
+	os.Setenv("PARSE_JSON_MODE", "1")
+	os.Setenv("ISSUE_BODY_TEMPLATE", "{{.ParsedMessage.rabbit}}")
+	os.Setenv("ISSUE_SUBJECT_TEMPLATE", "{{.Subject}}")
+
+	snsEventRaw, err = ioutil.ReadFile("../test/fixtures/event_with_json_message.json")
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	var snsEvent3 events.SNSEvent
+	err = json.Unmarshal(snsEventRaw, &snsEvent3)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	result, err = New(snsEvent3)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	issues = []Issue{
+		Issue{
+			Subject: "example subject",
+			Body:    "syndrome",
+		},
+	}
+	// TODO: We should mock API call for AWS Secret Manager and replace with dummy secret key name
+	result.GitHubAppPrivateKey = "dummy"
+	expect = Parameter{
+		GitHubAppKey:            "dummy",
+		GitHubBaseURL:           "https://example.com",
+		GitHubIntegrationID:     2,
+		GitHubInstallationID:    1,
+		GitHubAppPrivateKey:     "dummy",
+		GitHubAPIBaseURL:        "https://api.example.com",
+		GitHubAPIUploadsBaseURL: "https://uploads.example.com",
+		RepositoryOwner:         "rabbit",
+		Repository:              "syndrome",
+		IssueLabels:             []string{},
+		Issues:                  issues,
+	}
+	if reflect.DeepEqual(result, expect) {
+		// ok
+	} else {
+		t.Fatalf("Do not same values, expect: %+v, got: %+v", expect, result)
+	}
 }
