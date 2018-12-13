@@ -33,6 +33,11 @@ type Parameter struct {
 	Issues                  []Issue
 }
 
+type SNSEntityWithParsedMessage struct {
+	SNSEntity     events.SNSEntity
+	ParsedMessage interface{}
+}
+
 func fetchEnvVarAsInt(key string) (int, error) {
 	retVarStr := os.Getenv(key)
 	if retVarStr == "" {
@@ -47,10 +52,23 @@ func fetchEnvVarAsInt(key string) (int, error) {
 	return retVar, nil
 }
 
-func renderTemplate(templateStr string, snsEntity events.SNSEntity) (string, error) {
+func renderTemplate(templateStr string, snsEntity events.SNSEntity, parseJSONMode bool) (string, error) {
 	template := template.Must(template.New("template").Parse(templateStr))
 	var templateBuffer bytes.Buffer
-	err := template.Execute(&templateBuffer, snsEntity)
+	var err error
+	if parseJSONMode {
+		var parsedMessage interface{}
+		err = json.Unmarshal([]byte(snsEntity.Message), &parsedMessage)
+		snsEntityWithParsedMessage := SNSEntityWithParsedMessage{
+			SNSEntity:     snsEntity,
+			ParsedMessage: parsedMessage,
+		}
+		if err == nil {
+			err = template.Execute(&templateBuffer, snsEntityWithParsedMessage)
+		}
+	} else {
+		err = template.Execute(&templateBuffer, snsEntity)
+	}
 	if err != nil {
 		return "", err
 	}
@@ -180,11 +198,17 @@ func handleMessageAttributes(snsEntity *events.SNSEntity, issueSubjectTemplateSt
 		}
 	}
 
-	issueSubject, err := renderTemplate(*issueSubjectTemplateStr, *snsEntity)
+	var parseJSONMode bool
+	if os.Getenv("PARSE_JSON_MODE") == "" {
+		parseJSONMode = false
+	} else {
+		parseJSONMode = true
+	}
+	issueSubject, err := renderTemplate(*issueSubjectTemplateStr, *snsEntity, false)
 	if err != nil {
 		return err
 	}
-	issueBody, err := renderTemplate(*issueBodyTemplateStr, *snsEntity)
+	issueBody, err := renderTemplate(*issueBodyTemplateStr, *snsEntity, parseJSONMode)
 	if err != nil {
 		return err
 	}
