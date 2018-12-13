@@ -138,7 +138,7 @@ func TestNew(t *testing.T) {
 
 	os.Setenv("PARSE_JSON_MODE", "1")
 	os.Setenv("ISSUE_BODY_TEMPLATE", "{{.ParsedMessage.rabbit}}")
-	os.Setenv("ISSUE_SUBJECT_TEMPLATE", "{{.Subject}}")
+	os.Setenv("ISSUE_SUBJECT_TEMPLATE", "{{.SNSEntity.Subject}}")
 
 	snsEventRaw, err = ioutil.ReadFile("../test/fixtures/event_with_json_message.json")
 	if err != nil {

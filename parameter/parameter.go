@@ -204,7 +204,7 @@ func handleMessageAttributes(snsEntity *events.SNSEntity, issueSubjectTemplateSt
 	} else {
 		parseJSONMode = true
 	}
-	issueSubject, err := renderTemplate(*issueSubjectTemplateStr, *snsEntity, false)
+	issueSubject, err := renderTemplate(*issueSubjectTemplateStr, *snsEntity, parseJSONMode)
 	if err != nil {
 		return err
 	}
