@@ -7,12 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 )
 
-type Secret struct {
-	GitHubAppPrivateKey string `json:"GitHubAppPrivateKey"`
-}
-
-func FetchSecret(secretName string) (*Secret, error) {
-	retVal := new(Secret)
+func FetchSecretValue(secretName string, secretKey string) (string, error) {
+	retVal := ""
 
 	smSession, err := session.NewSession()
 	if err != nil {
@@ -28,10 +24,12 @@ func FetchSecret(secretName string) (*Secret, error) {
 		return retVal, err
 	}
 
-	err = json.Unmarshal(([]byte)(*getSecretValueResp.SecretString), retVal)
+	var secret map[string]string
+	err = json.Unmarshal(([]byte)(*getSecretValueResp.SecretString), &secret)
 	if err != nil {
 		return retVal, err
 	}
+	retVal = secret[secretKey]
 
 	return retVal, nil
 }
