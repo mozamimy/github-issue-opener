@@ -113,11 +113,15 @@ func handleEnvVars(parameter *Parameter) (string, string, error) {
 	if gitHubAppPrivateKeySecretName == "" {
 		return "", "", fmt.Errorf("GITHUB_APP_PRIVATE_KEY_SECRET_NAME variable is required")
 	}
-	secrets, err := secret.FetchSecret(gitHubAppPrivateKeySecretName)
+	gitHubAppPrivateKeySecretKey := os.Getenv("GITHUB_APP_PRIVATE_KEY_SECRET_KEY")
+	if gitHubAppPrivateKeySecretKey == "" {
+		// as default value for backward compatibility
+		gitHubAppPrivateKeySecretKey = "GitHubAppPrivateKey"
+	}
+	parameter.GitHubAppPrivateKey, err = secret.FetchSecretValue(gitHubAppPrivateKeySecretName, gitHubAppPrivateKeySecretKey)
 	if err != nil {
 		return "", "", err
 	}
-	parameter.GitHubAppPrivateKey = secrets.GitHubAppPrivateKey
 
 	parameter.GitHubAPIBaseURL = os.Getenv("GITHUB_API_BASE_URL")
 	if parameter.GitHubAPIBaseURL == "" {
