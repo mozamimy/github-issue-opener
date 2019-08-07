@@ -1,23 +1,6 @@
 # github-issue-opener
 
-A serverless application to open a GitHub issue by SNS notification.
-
-An issue will be opend when a notification like following example reaches to this function.
-
-```json
-{
-    "Type": "Notification",
-    "MessageId": ...,
-    "TopicArn": ...,
-    "Subject": "Issue subject",
-    "Message": "Issue body",
-    "Timestamp": ...,
-    "SignatureVersion": ...,
-    "Signature": ...,
-    "SigningCertURL": ...,
-    "UnsubscribeURL": ...
-}
-```
+An AWS Lambda function to open a GitHub issue by SNS notification.
 
 ![](docs/example.png)
 
