@@ -1,3 +1,4 @@
-main
-main.zip
-.vscode
+/main
+/main.zip
+/.vscode
+/template.json
