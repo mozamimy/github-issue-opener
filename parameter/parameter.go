@@ -22,8 +22,8 @@ type Issue struct {
 type Parameter struct {
 	GitHubAppKey            string
 	GitHubBaseURL           string
-	GitHubIntegrationID     int
-	GitHubInstallationID    int
+	GitHubIntegrationID     int64
+	GitHubInstallationID    int64
 	GitHubAppPrivateKey     string
 	GitHubAPIBaseURL        string
 	GitHubAPIUploadsBaseURL string
@@ -38,13 +38,13 @@ type SNSEntityWithParsedMessage struct {
 	ParsedMessage interface{}
 }
 
-func fetchEnvVarAsInt(key string) (int, error) {
+func fetchEnvVarAsInt(key string) (int64, error) {
 	retVarStr := os.Getenv(key)
 	if retVarStr == "" {
 		return 0, fmt.Errorf("err %s variable is required", key)
 	}
 
-	retVar, err := strconv.Atoi(retVarStr)
+	retVar, err := strconv.ParseInt(retVarStr, 10, 64)
 	if err != nil {
 		return 0, err
 	}
@@ -189,7 +189,7 @@ func handleMessageAttributes(snsEntity *events.SNSEntity, issueSubjectTemplateSt
 						return fmt.Errorf("unknown message attribute key: %v", key)
 					}
 				case "Number":
-					parameter.GitHubInstallationID, err = strconv.Atoi(attrValue)
+					parameter.GitHubInstallationID, err = strconv.ParseInt(attrValue, 10, 64)
 					if err != nil {
 						return fmt.Errorf("failed to convert from string to integer (key: %v, value: %v)", key, attrValue)
 					}
